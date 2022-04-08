@@ -11,7 +11,7 @@ import pandas as pd
 # TODO use SKLEARN models
 # TODO pickle this model for inference
 
-# https://www.kdnuggets.com/2020/07/clickbait-filter-python-naive-bayes-scratch.html
+# https://www.kaggle.com/c/clickbait-news-detection/data
 data = pd.read_csv("train.csv")[:10000]
 
 # replace all non alphanumeric, convert lower, split into list

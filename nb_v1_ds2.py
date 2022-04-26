@@ -9,19 +9,19 @@ from sklearn.metrics import confusion_matrix
 
 
 # https://www.kaggle.com/c/clickbait-news-detection/data
-data = pd.read_csv("train.csv")
+data = pd.read_csv("clickbait_data.csv")
 
 # replace all non alphanumeric, convert lower, split into list
-data['title'] = data['title'].str.replace('\W', ' ')
-data['title'] = data['title'].str.lower()
-data["title"] = data['title'].str.split()
+data['headline'] = data['headline'].str.replace('\W', ' ')
+data['headline'] = data['headline'].str.lower()
+data["headline"] = data['headline'].str.split()
 
 # calculate the set of all vocab
 bad_rows = []
 vocab = set()
 vocab_seen = set()
 
-for i, sms in tqdm(zip(data["id"], data['title'])):
+for i, sms in tqdm(enumerate(data['headline'])):
     try:
         for word in sms:
             word = word.lower()
@@ -42,22 +42,22 @@ freq_news = {word:0 for word in vocab + ['unk']}
 vocab = {word: i for i, word in enumerate(vocab)}
 
 # Used NP for speed. Literally 100x faster than Pandas
-rows = len(data['label'])
+rows = len(data['clickbait'])
 cols = n_vocab + 3 # +3 because need length, unk, and label parameters
 np_data = np.zeros((rows, cols), dtype=int)
 
-for i, (title, label) in tqdm(enumerate(zip(data['title'], data['label']))):
+for i, (headline, label) in tqdm(enumerate(zip(data['headline'], data['clickbait']))):
     # vectorize words to numbers
-    np_data[i][0] = len(title)
-    for word in title:
+    np_data[i][0] = len(headline)
+    for word in headline:
         if word in vocab:
             np_data[i][vocab[word]+1] += 1
         else:
             np_data[i][-2] += 1
 
-    if label == 'news':
+    if label == 0:
         np_data[i][-1] = 0
-    elif label == 'clickbait':
+    elif label == 1:
         np_data[i][-1] = 1
 
 clickbait = np_data[np_data[:,-1] == 1]
@@ -96,11 +96,11 @@ word_news_prob = (word_news + alpha) / (n_news + alpha*n_vocab)
 freq_news["unk"] = word_news_prob
 
 
-def classify(title):
+def classify(t):
     prob_clickbait_instance = prob_clickbait
     prob_news_instance = prob_news
 
-    for word in title:
+    for word in t:
         if word in freq_clickbait:
             prob_clickbait_instance *= freq_clickbait[word]
         else:
@@ -111,17 +111,17 @@ def classify(title):
             prob_news_instance *= freq_news["unk"]
 
     if prob_news_instance >= prob_clickbait_instance:
-        return "news"
+        return 0
     elif prob_news_instance < prob_clickbait_instance:
-        return "clickbait"
+        return 1
 
 
-X = data['title']
-y = data['label']
+X = data['headline']
+y = data['clickbait']
 
 predicted = []
-for title in X:
-    predicted.append(classify(title))
+for t in X:
+    predicted.append(classify(t))
 
 correct = 0
 for pred, real in zip(predicted, y):
@@ -131,13 +131,13 @@ for pred, real in zip(predicted, y):
 print(f"Train examples predicted correctly: {correct/len(y)}")
 
 data = test
-X = data['title'].values
-y = data['label']
+X = data['headline'].values
+y = data['clickbait']
 
 predicted = []
-for title in X:
-    predicted.append(classify(title))
+for headline in X:
+    predicted.append(classify(headline))
 
-tn, fp, fn, tp = confusion_matrix(y, predicted, labels=["news", "clickbait"]).ravel()
+tn, fp, fn, tp = confusion_matrix(y, predicted, labels=[0, 1]).ravel()
 total = tn + fp + fn + tp
 print(f"Test examples: TP: {tp/total:.3f}, FP: {fp/total:.3f}, TN: {tn/total:.3f}, FN: {fn/total:.3f}")

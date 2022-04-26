@@ -41,4 +41,3 @@ for key, count in d_news.items():
 
 for key, count in d_clickbait.items():
     print(f"class: clickbait, label: {key}, percent: {count/n_clickbait}")
-        

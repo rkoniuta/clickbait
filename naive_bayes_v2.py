@@ -7,28 +7,28 @@ from sklearn.metrics import accuracy_score, recall_score
 
 import numpy as np
 import pandas as pd
-#from wordcloud import STOPWORDS
+from matplotlib import pyplot as plt
+from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 
 '''
 Store some helper functions up here
 '''
-#creating a function to call after each model iteration to print accuracy and recall scores for test and train
+
 def train_results(preds):
     return "Training Accuracy:", accuracy_score(y_train,preds)
 
 def test_results(preds):
     return "Testing Accuracy:", accuracy_score(y_test,preds)
-    
-faulthandler.enable()
+
 # Import the dataset
-df = pd.read_csv("train.csv")[:5000]
+df = pd.read_csv("train.csv")
 
 # Use a stopwords dataset to remove common words that could distort the dataset
 stopwords_list = stopwords.words('english')
 
-# Clean out the rows with missing stuff and stuff categorized as 'other'
+# Clean out the rows with missing stuff
 bad_rows = []
 for i, sms in tqdm(zip(df["id"], df['title'])):
     try:
@@ -49,55 +49,42 @@ for i, sms in tqdm(zip(df["id"], df['text'])):
                 break
     except Exception:
         bad_rows.append(i)
-# Drop the stuff we don't want to use
-df = df.drop(bad_rows)
-# Could experiment with leaving other tag in.
-#df.drop(df[df['label'] == 'other'].index, inplace = True)
-df['label_int'] = df['label'].map(lambda x: 2 if x == 'news' else 1 if x == 'clickbait' else 0)
-# drop the text version of label and the article text
-df.drop(columns='label', inplace=True)
-#df.drop(columns='text', inplace=True)
 
-# Create the processed datasets
+# Drop the stuff we don't want
+df = df.drop(bad_rows)
+df['label_int'] = df['label'].map(lambda x: 2 if x == 'news' else 1 if x == 'clickbait' else 0)
+df.drop(columns='label', inplace=True)
+
+
+# Create processed datasets
 features = df.drop(columns='label_int')
 y = df['label_int']
 
-#show the counts
+# Show the counts
 print(f'Display how many of each type there are: {y.value_counts()}')
 
-X_train, X_test, y_train, y_test = train_test_split(features, y, random_state=20)
+X_train, X_test, y_train, y_test = train_test_split(features, y, random_state=40)
 
 # Vectorize the titles
-tfidf = TfidfVectorizer(stop_words=stopwords_list, ngram_range=(1,2))
+tfidf = TfidfVectorizer(stop_words=stopwords_list, ngram_range=(1,2)) # ngram_range of (1,2) produces the best results in my testing
 tfidf_title_train = tfidf.fit_transform(X_train['title'])
-tfidf_text_train = tfidf.fit_transform(X_train['text'])
 tfidf_title_test = tfidf.transform(X_test['title'])
-tfidf_text_test = tfidf.transform(X_test['text'])
 
 X_train_ef = X_train.drop(columns=['title', 'text'])
 X_test_ef = X_test.drop(columns=['title', 'text'])
 
-print(X_train_ef)
 
-from scipy import sparse
 
-X_train = sparse.hstack([X_train_ef, tfidf_title_train, tfidf_text_train]).tocsr()
-X_test = sparse.hstack([X_test_ef, tfidf_title_test, tfidf_text_test]).tocsr()
 
-#print(X_train_ef)
-#print(tfidf_title_train)
-#print(X_train)
-#X_train = [X_train_ef, tfidf_title_train]
-#X_test = [X_test_ef, tfidf_title_test]
-print('passed conversion')
-clf = GaussianNB()
-print('about to fit')
+X_train = sparse.hstack([X_train_ef, tfidf_title_train]).tocsr()
+X_test = sparse.hstack([X_test_ef, tfidf_title_test]).tocsr()
 
-clf.fit(X_train.toarray(), y_train)
-print('model fitted')
+clf = MultinomialNB(alpha=0.01) # This variable can be modifed and gets slightly diff results
 
-nb_train_preds = clf.predict(X_train.toarray())
-nb_test_preds = clf.predict(X_test.toarray())
+clf.fit(X_train, y_train)
+
+nb_train_preds = clf.predict(X_train)
+nb_test_preds = clf.predict(X_test)
 
 print(train_results(nb_train_preds))
 print(test_results(nb_test_preds))

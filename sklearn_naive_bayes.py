@@ -49,7 +49,7 @@ def process(data, n_vocab=None):
 
     # Used NP for speed. Literally 100x faster than Pandas
     rows = len(data['label'])
-    cols = n_vocab + 2 # +3 because need length, unk params
+    cols = n_vocab + 2 # + 2 because need length, unk params
     np_data = np.zeros((rows, cols), dtype=int)
 
     for i, (title, label) in tqdm(enumerate(zip(data['title'], data['label']))):

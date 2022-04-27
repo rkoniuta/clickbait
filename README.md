@@ -16,5 +16,9 @@ Dataset 2: https://www.kaggle.com/datasets/amananandrai/clickbait-dataset (save 
 
 `nb_v1_ds1.py`: naive bayes attempt one (with basic vectorization), on dataset 1
 
+`naive_bayes_v2.py`: attempt with new vectorizer, on first dataset
+
+`naive_bayes_v2new_dataset.py`: attempt with new vectorizer, on second dataset
+
 
 
